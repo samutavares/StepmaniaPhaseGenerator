@@ -1,0 +1,44 @@
+# ======= ARQUIVOS SENSÍVEIS =======
+# Nunca committar chaves de API ou dados sensíveis
+.env
+.env.local
+.env.production
+.env.staging
+
+# ======= CACHE E TEMPORÁRIOS =======
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ======= ARQUIVOS DE DEBUG =======
+api_response_debug.txt
+debug_ai_response.txt
+*.log
+*.tmp
+
+# ======= IDE =======
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ======= DADOS SENSÍVEIS DO PROJETO =======
+# Arquivos com resultados que podem conter dados pessoais
+resultado*.txt
+*_debug.txt
+
+# ======= OUTPUTS GERADOS =======
+generated_chart.sm
+*_LearnMode.sm
+
+# ======= SISTEMA =======
+.DS_Store
+Thumbs.db

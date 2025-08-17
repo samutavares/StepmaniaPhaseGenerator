@@ -1,0 +1,32 @@
+=== CÓDIGO DA COMPARAÇÃO DE CHARTS ===
+
+Arquivo 1: C:\Games\Etterna\Songs\Waka Waka (This time for Africa)\Stepchart.sm
+Arquivo 2: C:\Games\Etterna\Songs\Waka Waka (This time for Africa)\Stepchart_Beginner_LearnMode.sm
+Nível comparado: 2
+Data/Hora: 17/08/2025 17:30:04
+
+=== RESULTADO DA COMPARAÇÃO ===
+
+=== COMPARAÇÃO DE CHART DATA ===
+
+Comparando apenas as linhas de notas (0000, 0001, etc.)
+Ignorando metadados e headers
+
+=== Diferenças encontradas ===
+
+
+=== Resumo ===
+Total linhas chart original: 309
+Total linhas chart modificado: 309
+Linhas iguais: 309
+Linhas diferentes: 0
+Similaridade do chart data: 100.00%
+
+
+=== INSTRUÇÕES PARA REPRODUZIR ===
+Para reproduzir esta comparação, execute:
+python Similaridade.py
+E escolha as mesmas opções:
+- Arquivo 1: C:\Games\Etterna\Songs\Waka Waka (This time for Africa)\Stepchart.sm
+- Arquivo 2: C:\Games\Etterna\Songs\Waka Waka (This time for Africa)\Stepchart_Beginner_LearnMode.sm
+- Nível: 2
