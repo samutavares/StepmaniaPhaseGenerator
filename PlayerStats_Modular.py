@@ -34,7 +34,7 @@ from chart_extractor import (
 
 
 # ======= CONFIGURAÇÕES - MODIFIQUE AQUI =======
-SONG_FOLDER = r"C:\Games\Etterna\Songs\The Time (Dirty Bit)"
+SONG_FOLDER = r"C:\Games\Etterna\Songs\Hey, Soul Sister"
 SM_FILENAME = "Stepchart.sm"
 REPLAYS_DIR = r"C:\Games\Etterna\Save\ReplaysV2"
 
@@ -100,13 +100,12 @@ Contexto:
 do jogador.
 
 Regras pedagógicas (use a taxa de acerto geral e por trilha):
-- Se a acurácia geral > 85%: aumente levemente a dificuldade (no máximo +15% de densidade), priorizando padrões \
+- Se a acurácia geral (Considere Flawless e Perfect) > 85%: aumente levemente a dificuldade (no máximo +15% de densidade), priorizando padrões \
 coerentes do estilo original.
 - Se a acurácia geral ≤ 85%: reduza a dificuldade (até −20% de densidade), limpando trêmulos longos, alternâncias \
 rápidas e repetições cansativas.
 - Adapte por trilha: onde a acurácia estiver pior, reduza uso dessa trilha; onde estiver melhor, permita um pouco \
 mais de incidência.
-- Distribua as mudanças ao longo de toda a música (evite concentrar tudo no início ou fim).
 - Preserve o "feeling" rítmico e os acentos principais da música.
 
 Restrições técnicas (obrigatórias):

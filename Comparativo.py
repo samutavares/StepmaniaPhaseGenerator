@@ -251,13 +251,13 @@ def plot_comparison(file1, file2, level_index=1):
 # ========================================
 
 # 1. ARQUIVO 1 (Original)
-Musica1 = r"C:\Games\Etterna\Songs\The Time (Dirty Bit)\Stepchart.sm"
+Musica1 = r"C:\Games\Etterna\Songs\Hey, Soul Sister\Stepchart.sm"
 
 # 2. ARQUIVO 2 (Modificado)
-Musica2 = r"C:\Games\Etterna\Songs\The Time (Dirty Bit)\Stepchart_Beginner_LearnMode.sm"
+Musica2 = r"C:\Games\Etterna\Songs\Hey, Soul Sister\Stepchart_Beginner_LearnMode.sm"
 
 # 3. NÍVEL PARA COMPARAR (0, 1, 2, etc.)
-Nivel = 4  # 1 = Beginner, 2 = Easy, 3 = Medium, etc.
+Nivel = 1
 
 # ========================================
 # EXECUÇÃO AUTOMÁTICA
