@@ -38,10 +38,7 @@ resultado*.txt
 # ======= OUTPUTS GERADOS =======
 generated_chart.sm
 *_LearnMode.sm
-
-# ======= RESPOSTAS DE IA =======
-AI_Responses/
-**/AI_Responses/
+AI_Responses*/
 
 # ======= SISTEMA =======
 .DS_Store
