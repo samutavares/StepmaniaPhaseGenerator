@@ -97,7 +97,7 @@ export CLAUDE_API_KEY="sk-ant-xxx..."
 - `claude-3-5-sonnet-20241022` - Claude 3.5 Sonnet (mais recente)
 - `claude-3-sonnet-20240229` - Claude 3 Sonnet
 - `claude-3-haiku-20240307` - Claude 3 Haiku (mais rápido)
-- `claude-3-opus-20240229` - Claude 3 Opus (mais potente)
+- `claude-3-opus-29` - Claude 3 Opus (mais potente)
 
 ## 🎯 **Comandos úteis:**
 

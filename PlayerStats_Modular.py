@@ -52,6 +52,7 @@ FORCE_API_CALL = True  # Mude para False para usar arquivo local
 try:
     from api_config import (
         API_CONFIG, 
+        get_api_config,
         get_available_models, 
         get_active_api, 
         get_available_apis,
@@ -89,6 +90,8 @@ except ImportError:
 # ===============================================
 
 # ======= PROMPT PARA IA - MODIFICAR AQUI =======
+
+# mexer no prompt para onde olhar.
 PROMPT_INSTRUCTIONS = """Você é um assistente que modifica o chart de StepMania para facilitar o aprendizado do jogador \
 a partir do desempenho observado.
 
@@ -233,25 +236,26 @@ def call_ai_for_chart_improvement(chart_data: str, performance_stats: pd.DataFra
     """
     stats_dict = performance_stats.to_dict(orient="records")
     
-    # Usa configurações globais da API
-    API_URL = API_CONFIG["url"]
-    API_KEY = API_CONFIG["key"]
-    MODEL = API_CONFIG["model"]
-    TIMEOUT = API_CONFIG["timeout"]
-    TEMPERATURE = API_CONFIG["temperature"]
+    # Usa configurações globais da API (sempre atualizadas)
+    cfg = get_api_config()
+    API_URL = cfg["url"]
+    API_KEY = cfg["key"]
+    MODEL = cfg["model"]
+    TIMEOUT = cfg["timeout"]
+    TEMPERATURE = cfg["temperature"]
     
-    # Determina o parâmetro correto para tokens baseado na API ativa
+    # Determina tokens (unificado)
     try:
         active_api = get_active_api()
         if active_api == "openai":
-            MAX_TOKENS = API_CONFIG.get("max_completion_tokens", 4000)
+            # OpenAI pode requerer max_completion_tokens para alguns modelos
+            MAX_TOKENS = cfg.get("max_completion_tokens", cfg.get("max_tokens", 4000))
             tokens_param = "max_completion_tokens"
         else:
-            MAX_TOKENS = API_CONFIG.get("max_tokens", 4000)
+            MAX_TOKENS = cfg.get("max_tokens", 4000)
             tokens_param = "max_tokens"
     except:
-        # Fallback se não conseguir determinar a API
-        MAX_TOKENS = API_CONFIG.get("max_tokens", API_CONFIG.get("max_completion_tokens", 4000))
+        MAX_TOKENS = cfg.get("max_tokens", cfg.get("max_completion_tokens", 4000))
         tokens_param = "max_tokens"
     
     # Dados para enviar para a IA
@@ -273,31 +277,56 @@ def call_ai_for_chart_improvement(chart_data: str, performance_stats: pd.DataFra
     
     try:
         print("📡 Iniciando requisição POST...")
+        print(f"📝 Max Tokens: {MAX_TOKENS}")
+        print(f"📝 API_URL: {API_URL}")
+        print(f"Model: {MODEL}")
         
-        # Prepara payload da requisição
-        request_payload = {
-            "model": MODEL,
-            "messages": [{"role": "user", "content": data_json}]
-        }
-        
-        # Adiciona parâmetro de tokens correto baseado na API
-        request_payload[tokens_param] = MAX_TOKENS
-        
-        # Adiciona temperature apenas para modelos que suportam
-        if active_api == "openai" and MODEL == "gpt-5":
-            # GPT-5 só suporta temperature = 1 (padrão)
-            print("⚠️ GPT-5 usa temperature padrão (1.0)")
-        else:
+        # Prepara payload e headers
+        if active_api == "claude":
+            request_payload = {
+                "model": MODEL,
+                "max_tokens": MAX_TOKENS,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": data_json}
+                        ]
+                    }
+                ]
+            }
+            # Temperature opcional para Claude
             request_payload["temperature"] = TEMPERATURE
+            headers = {
+                "x-api-key": API_KEY,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json"
+            }
+        else:
+            request_payload = {
+                "model": MODEL,
+                "messages": [{"role": "user", "content": data_json}]
+            }
+            # Adiciona o parâmetro correto de tokens
+            request_payload[tokens_param] = MAX_TOKENS
+            
+            # Adiciona temperature apenas se o modelo suportar
+            if active_api == "openai" and MODEL in ["gpt-5", "gpt-4o"]:
+                # GPT-5 e GPT-4o só suportam temperature padrão (1)
+                print("⚠️ Modelo OpenAI não suporta temperature customizada, usando padrão (1.0)")
+            else:
+                request_payload["temperature"] = TEMPERATURE
+            
+            headers = {
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json"
+            }
         
         # Faz a requisição com timeout
         response = requests.post(
             API_URL,
             json=request_payload,
-            headers={
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json"
-            },
+            headers=headers,
             timeout=TIMEOUT
         )
         
@@ -308,14 +337,28 @@ def call_ai_for_chart_improvement(chart_data: str, performance_stats: pd.DataFra
         if response.status_code == 200:
             print("✅ Resposta 200 recebida, processando...")
             response_data = response.json()
-            if "choices" in response_data and len(response_data["choices"]) > 0:
-                content = response_data["choices"][0]["message"]["content"]
-                print(f"✅ Resposta da IA recebida: {len(content)} caracteres")
-                return content
-            else:
-                print("⚠️ Resposta da IA não contém choices válidos")
+            if active_api == "claude":
+                try:
+                    parts = response_data.get("content", [])
+                    texts = [p.get("text", "") for p in parts if isinstance(p, dict)]
+                    content = "\n".join([t for t in texts if t])
+                except Exception:
+                    content = ""
+                if content:
+                    print(f"✅ Resposta da IA recebida: {len(content)} caracteres")
+                    return content
+                print("⚠️ Resposta da IA (Claude) sem conteúdo de texto utilizável")
                 print(f"📄 Resposta completa: {response_data}")
-                raise requests.RequestException("Resposta da IA inválida")
+                raise requests.RequestException("Resposta da IA inválida (Claude)")
+            else:
+                if "choices" in response_data and len(response_data["choices"]) > 0:
+                    content = response_data["choices"][0]["message"]["content"]
+                    print(f"✅ Resposta da IA recebida: {len(content)} caracteres")
+                    return content
+                else:
+                    print("⚠️ Resposta da IA não contém choices válidos")
+                    print(f"📄 Resposta completa: {response_data}")
+                    raise requests.RequestException("Resposta da IA inválida")
         else:
             print(f"❌ Erro na API: {response.status_code}")
             print(f"📄 Resposta de erro: {response.text}")
@@ -358,17 +401,36 @@ def test_api_connectivity():
         print("✅ Conectividade básica OK")
         
         # Teste da API real (sem enviar dados completos)
-        test_response = requests.post(
-            API_CONFIG["url"],
-            json={
-                "model": API_CONFIG["model"],
+        cfg = get_api_config()
+        active_api = get_active_api()
+        if active_api == "claude":
+            test_payload = {
+                "model": cfg["model"],
+                "max_tokens": 10,
+                "messages": [
+                    {"role": "user", "content": [{"type": "text", "text": "Teste de conectividade"}]}
+                ]
+            }
+            headers = {
+                "x-api-key": cfg["key"],
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json"
+            }
+        else:
+            test_payload = {
+                "model": cfg["model"],
                 "messages": [{"role": "user", "content": "Teste de conectividade"}],
                 "max_tokens": 10
-            },
-            headers={
-                "Authorization": f"Bearer {API_CONFIG['key']}",
+            }
+            headers = {
+                "Authorization": f"Bearer {cfg['key']}",
                 "Content-Type": "application/json"
-            },
+            }
+        
+        test_response = requests.post(
+            cfg["url"],
+            json=test_payload,
+            headers=headers,
             timeout=30
         )
         

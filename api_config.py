@@ -14,7 +14,7 @@ IMPORTANTE:
 import os
 try:
     from dotenv import load_dotenv
-    load_dotenv()  # Carrega .env se python-dotenv estiver disponível
+    load_dotenv(override=True)  # Carrega .env se python-dotenv estiver disponível
 except ImportError:
     # Se python-dotenv não estiver disponível, usa apenas os.getenv
     pass
@@ -38,7 +38,7 @@ DEEPSEEK_CONFIG = {
 OPENAI_CONFIG = {
     "url": "https://api.openai.com/v1/chat/completions",
     "key": os.getenv("OPENAI_API_KEY", ""),  # Carregada do .env
-    "model": os.getenv("OPENAI_MODEL", "gpt-5"),
+    "model": os.getenv("OPENAI_MODEL", "gpt-4o"),
     "timeout": int(os.getenv("API_TIMEOUT", "300")),
     "max_completion_tokens": int(os.getenv("API_MAX_TOKENS", "4000")),
     "temperature": float(os.getenv("API_TEMPERATURE", "0.7"))  # GPT-5 ignora este valor (usa sempre 1.0)
@@ -47,7 +47,7 @@ OPENAI_CONFIG = {
 CLAUDE_CONFIG = {
     "url": "https://api.anthropic.com/v1/messages",
     "key": os.getenv("CLAUDE_API_KEY", ""),  # Carregada do .env
-    "model": os.getenv("CLAUDE_MODEL", "claude-3-sonnet-20240229"),
+    "model": os.getenv("CLAUDE_MODEL", "claude-3-7-sonnet-20250219"),
     "timeout": int(os.getenv("API_TIMEOUT", "300")),
     "max_tokens": int(os.getenv("API_MAX_TOKENS", "4000")),
     "temperature": float(os.getenv("API_TEMPERATURE", "0.7"))
@@ -60,8 +60,13 @@ API_CONFIGS = {
     "claude": CLAUDE_CONFIG
 }
 
+# Normaliza ACTIVE_API caso esteja inválido (ex.: typos no .env)
+if ACTIVE_API not in API_CONFIGS:
+    print(f"⚠️ ACTIVE_API inválido no .env: '{ACTIVE_API}'. Usando 'deepseek' como padrão.")
+    ACTIVE_API = "deepseek"
+
 # Configuração atual ativa
-API_CONFIG = API_CONFIGS.get(ACTIVE_API, DEEPSEEK_CONFIG)
+API_CONFIG = API_CONFIGS[ACTIVE_API].copy()
 
 # ======= MODELOS DISPONÍVEIS POR API =======
 AVAILABLE_MODELS = {
@@ -78,10 +83,10 @@ AVAILABLE_MODELS = {
         "gpt-4o-mini": "GPT-4o Mini (mais barato)"
     },
     "claude": {
-        "claude-3-5-sonnet-20241022": "Claude 3.5 Sonnet (mais recente)",
-        "claude-3-sonnet-20240229": "Claude 3 Sonnet",
-        "claude-3-haiku-20240307": "Claude 3 Haiku (mais rápido)",
-        "claude-3-opus-20240229": "Claude 3 Opus (mais potente)"
+        "claude-3-7-sonnet-20250219": "Claude 3.7 Sonnet (mais recente)",
+        "claude-sonnet-4-20250514": "Claude 4 Sonnet",
+        "claude-3-5-haiku-20241022": "Claude 3 Haiku (mais rápido)",
+        "claude-opus-4-20250514": "Claude 4 Opus (mais potente)"
     }
 }
 
@@ -178,8 +183,16 @@ def show_config():
     print(f"🔑 API Key: {API_CONFIG['key'][:10]}...{API_CONFIG['key'][-4:]}")
     print(f"🤖 Modelo: {API_CONFIG['model']}")
     print(f"⏱️ Timeout: {API_CONFIG['timeout']}s")
-    print(f"📝 Max Tokens: {API_CONFIG['max_tokens']}")
-    print(f"🌡️ Temperature: {API_CONFIG['temperature']}")
+    
+    # Mostra o parâmetro correto baseado na API
+    if ACTIVE_API == "openai":
+        tokens_value = API_CONFIG.get('max_completion_tokens', 'N/A')
+        print(f"📝 Max Completion Tokens: {tokens_value}")
+    else:
+        tokens_value = API_CONFIG.get('max_tokens', 'N/A')
+        print(f"📝 Max Tokens: {tokens_value}")
+    
+    print(f"🌡️ Temperature: {API_CONFIG.get('temperature', 'N/A')}")
     
     print(f"\n📋 Modelos disponíveis para {ACTIVE_API}:")
     for model, desc in get_available_models().items():

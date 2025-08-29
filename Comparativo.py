@@ -251,10 +251,10 @@ def plot_comparison(file1, file2, level_index=1):
 # ========================================
 
 # 1. ARQUIVO 1 (Original)
-Musica1 = r"C:\Games\Etterna\Songs\Hey, Soul Sister\Stepchart.sm"
+Musica1 = r"C:\Games\Etterna\Songs\Loca\Stepchart.sm"
 
 # 2. ARQUIVO 2 (Modificado)
-Musica2 = r"C:\Games\Etterna\Songs\Hey, Soul Sister\Stepchart_Beginner_LearnMode.sm"
+Musica2 = r"C:\Games\Etterna\Songs\Loca2\Stepchart_Beginner_Neko_LearnMode.sm"
 
 # 3. NÍVEL PARA COMPARAR (0, 1, 2, etc.)
 Nivel = 1
@@ -265,3 +265,6 @@ Nivel = 1
 
 if __name__ == "__main__":
     plot_comparison(Musica1, Musica2, level_index=Nivel)
+
+
+# Comparação com o erro do jogador.

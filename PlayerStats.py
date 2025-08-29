@@ -5,17 +5,82 @@ import requests
 import os
 import glob
 from pathlib import Path
+from datetime import datetime
+import getpass
 
 # ======= CONFIGURAÇÕES - MODIFIQUE AQUI =======
-SONG_FOLDER = r"C:\Games\Etterna\Songs\Telephone"
+SONG_FOLDER = r"C:\Games\Etterna\Songs\Loca"
 SM_FILENAME = "Stepchart.sm"
 REPLAYS_DIR = r"C:\Games\Etterna\Save\ReplaysV2"
 
 # Configuração da dificuldade (deixe vazio para escolher interativamente)
 TARGET_DIFFICULTY = "Beginner"  # Ex: "Hard", "Medium", "Easy", "Beginner" ou deixe vazio para escolher
 
+# Configuração do nome do usuário
+USERNAME = "Samuel"  # Modifique aqui para o nome desejado
+
 SM_FILE_PATH = os.path.join(SONG_FOLDER, SM_FILENAME)
 # ===============================================
+
+
+def create_ai_responses_folder():
+    """Cria pasta para salvar respostas da AI com nome do usuário, timestamp e modelo"""
+    username = USERNAME
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ai_model = "deepseek-chat"  # Modelo usado na API
+    
+    folder_name = f"AI_Responses_{ai_model}"
+    folder_path = os.path.join(os.getcwd(), folder_name)
+    
+    # Cria a pasta se não existir
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        print(f"Pasta criada: {folder_path}")
+    
+    return folder_path
+
+def save_ai_response(response_content, folder_path):
+    """Salva a resposta da AI em um arquivo na pasta criada"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"ai_response_{timestamp}.txt"
+    filepath = os.path.join(folder_path, filename)
+    
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(response_content)
+    
+    print(f"Resposta da AI salva em: {filepath}")
+    return filepath
+
+def rename_latest_replay_file():
+    """Renomeia o último arquivo de replay com nome do usuário e timestamp"""
+    username = USERNAME
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Pega todos os arquivos da pasta
+    all_files = glob.glob(os.path.join(REPLAYS_DIR, "*"))
+    
+    if not all_files:
+        print("Nenhum arquivo de replay encontrado!")
+        return None
+    
+    # Pega o arquivo mais recente
+    latest_file = max(all_files, key=os.path.getctime)
+    
+    # Obtém a extensão do arquivo original
+    file_ext = os.path.splitext(latest_file)[1]
+    
+    # Cria o novo nome do arquivo
+    new_filename = f"{username}_{timestamp}{file_ext}"
+    new_filepath = os.path.join(REPLAYS_DIR, new_filename)
+    
+    try:
+        # Renomeia o arquivo
+        os.rename(latest_file, new_filepath)
+        print(f"Arquivo de replay renomeado: {os.path.basename(latest_file)} -> {new_filename}")
+        return new_filepath
+    except Exception as e:
+        print(f"Erro ao renomear arquivo: {e}")
+        return latest_file
 
 
 def get_latest_replay_data():
@@ -31,16 +96,67 @@ def get_latest_replay_data():
     
     return content
 
+# Renomeia o último arquivo de replay antes de processá-lo
+print("Renomeando arquivo de replay...")
+renamed_replay_file = rename_latest_replay_file()
+
 data_str = get_latest_replay_data()
 
+# Debug: mostrar as primeiras linhas do arquivo para entender o formato
+print("Primeiras linhas do arquivo de replay:")
+print(data_str[:500])
+print("=" * 50)
+
 rows = []
-for line in data_str.strip().splitlines():
-    parts = line.split()
-    row_index = int(parts[0])
-    offset = float(parts[1])
-    tracks = list(map(int, parts[2:]))
-    for track in tracks:
-        rows.append({"row": row_index, "offset": offset, "track": track})
+for line_num, line in enumerate(data_str.strip().splitlines(), 1):
+    try:
+        parts = line.split()
+        if len(parts) < 3:  # Precisa ter pelo menos 3 partes: row, offset, e pelo menos uma track
+            print(f"Linha {line_num} ignorada - formato inválido: {line}")
+            continue
+            
+        # Valida se a primeira parte é um número
+        if not parts[0].replace('-', '').replace('.', '').isdigit():
+            print(f"Linha {line_num} ignorada - row não é numérico: {parts[0]}")
+            continue
+            
+        # Valida se a segunda parte é um número
+        if not parts[1].replace('-', '').replace('.', '').isdigit():
+            print(f"Linha {line_num} ignorada - offset não é numérico: {parts[1]}")
+            continue
+            
+        row_index = int(parts[0])
+        offset = float(parts[1])
+        
+        # Valida as tracks
+        valid_tracks = []
+        for track_str in parts[2:]:
+            if track_str.isdigit():
+                track_num = int(track_str)
+                if 0 <= track_num <= 3:  # Tracks válidas são 0-3
+                    valid_tracks.append(track_num)
+                else:
+                    print(f"Linha {line_num} - track inválida ignorada: {track_num}")
+            else:
+                print(f"Linha {line_num} - track não numérica ignorada: {track_str}")
+        
+        for track in valid_tracks:
+            rows.append({"row": row_index, "offset": offset, "track": track})
+            
+    except (ValueError, IndexError) as e:
+        print(f"Erro ao processar linha {line_num}: {line}")
+        print(f"Erro: {e}")
+        continue
+
+print(f"Total de linhas processadas com sucesso: {len(rows)}")
+
+# Verifica se temos dados válidos
+if len(rows) == 0:
+    print("ERRO: Nenhum dado válido encontrado no arquivo de replay!")
+    print("Verifique se o arquivo está no formato correto:")
+    print("Formato esperado: <row> <offset> <track1> <track2> ...")
+    print("Exemplo: 100 0.023 0 2")
+    exit(1)
 
 df = pd.DataFrame(rows)
 
@@ -327,6 +443,13 @@ print(f"Response Text: {response.text}")
 if response.status_code == 200:
     full_response = response.json()["choices"][0]["message"]["content"]
     
+    # Cria pasta para salvar respostas da AI
+    print("Criando pasta para respostas da AI...")
+    ai_folder = create_ai_responses_folder()
+    
+    # Salva a resposta da AI
+    ai_response_file = save_ai_response(full_response, ai_folder)
+    
     chart_content = ""
     if "```" in full_response:
         start_marker = full_response.find("```")
@@ -419,11 +542,15 @@ if response.status_code == 200:
             f.write(new_content)
         
         print(f"Chart modificado salvo em: {new_filepath}")
+        print(f"Resposta da AI salva em: {ai_response_file}")
         print("Texto completo da resposta:")
         print(full_response)
     else:
         print("Não foi possível extrair o conteúdo do chart da resposta")
         print("Resposta completa:")
         print(full_response)
+        print(f"Resposta da AI salva em: {ai_response_file}")
 else:
     print(f"Error {response.status_code}: {response.text}")
+    if 'ai_response_file' in locals():
+        print(f"Resposta da AI salva em: {ai_response_file}")
